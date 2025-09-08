@@ -1,4 +1,6 @@
 from fastapi import FastAPI, Query
+import httpx
+from fastapi.middleware.cors import CORSMiddleware
 import yfinance as yf
 import numpy as np
 import pandas as pd
@@ -7,6 +9,15 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dense, Dropout
 
 app = FastAPI(title="Stock Price Predictor")
+
+# Configure CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],  # Vite's default port
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Utility: build & train model quickly
 def train_and_predict(ticker: str):
@@ -55,3 +66,28 @@ def train_and_predict(ticker: str):
 @app.get("/predict")
 def predict(ticker: str = Query(..., description="Stock symbol, e.g., AAPL or INFY.NS")):
     return train_and_predict(ticker)
+
+@app.get("/search")
+async def search_stocks(query: str):
+    """Search stocks by company name using Yahoo Finance unofficial API."""
+    url = f"https://query2.finance.yahoo.com/v1/finance/search?q={query}&quotesCount=5&newsCount=0"
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36"
+    }
+    async with httpx.AsyncClient() as client:
+        response = await client.get(url, headers=headers)
+        if response.status_code == 200:
+            res = response.json()
+        else:
+            return {"error": "Failed to fetch data from Yahoo Finance"}
+
+    results = []
+    for quote in res.get("quotes", []):
+        results.append({
+            "symbol": quote.get("symbol"),
+            "name": quote.get("shortname", quote.get("longname", "")),
+            "exchange": quote.get("exchDisp", "")
+        })
+
+    return results
+
