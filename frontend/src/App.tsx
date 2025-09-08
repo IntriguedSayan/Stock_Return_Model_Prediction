@@ -93,7 +93,7 @@ const App: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  // 🔍 Search company names
+  // Search company names
   const handleSearch = async (value: string) => {
     setQuery(value);
     if (value.length < 2) {
@@ -106,7 +106,7 @@ const App: React.FC = () => {
     setOptions(res.data);
   };
 
-  // 📈 Predict
+  // Predict
   const handlePredict = async () => {
     if (!ticker) return;
     setLoading(true);
@@ -134,7 +134,8 @@ const App: React.FC = () => {
         padding: "20px",
         fontFamily: "Arial, sans-serif",
         maxWidth: "800px",
-        margin: "0 auto",
+        margin: "auto",
+        border: "1px solid red",
       }}
     >
       <style>
@@ -160,12 +161,18 @@ const App: React.FC = () => {
         📈 Stock Price Predictor
       </h1>
 
-      <div style={{ position: "relative", width: "300px", margin: "0 auto" }}>
+      <div style={{ position: "relative", width: "300px", margin: "0 auto", marginBottom: "20px" }}>
         <input
           type="text"
           placeholder="Search company (e.g., Infosys, Apple)"
           value={query}
-          onChange={(e) => handleSearch(e.target.value)}
+          onChange={(e) => {
+            handleSearch(e.target.value);
+            if (e.target.value !== query) {
+              setTicker(""); // Clear ticker when user starts a new search
+              setPrediction(null); // Clear previous prediction
+            }
+          }}
           style={{
             width: "100%",
             padding: "10px 15px",
@@ -204,9 +211,7 @@ const App: React.FC = () => {
                 onClick={() => {
                   setTicker(opt.symbol);
                   setQuery(opt.name); // Keep the company name in the search box
-                  setOptions([]);
-                  // Trigger prediction immediately when an option is selected
-                  setTimeout(() => handlePredict(), 0);
+                  setOptions([]); // Clear the dropdown
                 }}
                 style={{
                   padding: "10px 15px",
@@ -214,6 +219,7 @@ const App: React.FC = () => {
                   borderBottom: "1px solid #eee",
                   transition: "background-color 0.2s ease",
                   backgroundColor: "white",
+                  color: "black",
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.backgroundColor = "#f5f5f5";
@@ -234,27 +240,63 @@ const App: React.FC = () => {
           </ul>
         )}
 
-        <button onClick={handlePredict} style={{ padding: "5px 10px" }}>
-          Predict
-        </button>
+        </div> {/* Close the search container div */}
+        
+        <div style={{ textAlign: "center", marginTop: "20px" }}>
+          <button 
+            onClick={handlePredict} 
+            style={{ 
+              padding: "10px 20px",
+              fontSize: "16px",
+              backgroundColor: "#3498db",
+              color: "white",
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
+              transition: "background-color 0.2s ease"
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = "#2980b9";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = "#3498db";
+            }}
+            disabled={!ticker}
+          >
+            Predict
+          </button>
+        </div>
 
         {loading && <div className="spinner" />}
-        {error && <p style={{ color: "red" }}>{error}</p>}
+        {error && <p style={{ color: "red", textAlign: "center" }}>{error}</p>}
 
         {prediction && !error && (
-          <div style={{ marginTop: "20px" }}>
-            <h2>{prediction.ticker}</h2>
-            <p>
-              <strong>Last Actual Price:</strong> {prediction.last_actual_price}
+          <div style={{ 
+            marginTop: "20px", 
+            padding: "20px",
+            backgroundColor: "#f8f9fa",
+            color:"black",
+            borderRadius: "8px",
+            textAlign: "center"
+          }}>
+            <h2 style={{ color: "#2c3e50", marginBottom: "15px" }}>{prediction.ticker}</h2>
+            <p style={{ fontSize: "18px", margin: "10px 0" }}>
+              <strong>Last Actual Price:</strong> {
+                prediction.ticker.endsWith('.NS') || prediction.ticker.endsWith('.BO') 
+                ? `₹${prediction.last_actual_price}`
+                : `$${prediction.last_actual_price}`
+              }
             </p>
-            <p>
-              <strong>Next Predicted Price:</strong>{" "}
-              {prediction.next_predicted_price}
+            <p style={{ fontSize: "18px", margin: "10px 0" }}>
+              <strong>Next Predicted Price:</strong> {
+                prediction.ticker.endsWith('.NS') || prediction.ticker.endsWith('.BO')
+                ? `₹${prediction.next_predicted_price}`
+                : `$${prediction.next_predicted_price}`
+              }
             </p>
           </div>
         )}
       </div>
-    </div>
   );
 };
 
